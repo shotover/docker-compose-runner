@@ -9,13 +9,10 @@ on:
 jobs:
   publish-crates-io:
     name: "Publish to crates.io"
-    needs: prepublish-check
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
       - name: Publish
-        run: |
-          cd tokio-bin-process
-          cargo publish
+        run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}

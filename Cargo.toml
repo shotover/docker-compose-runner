@@ -3,7 +3,9 @@ name = "docker-compose-runner"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.56"
+repository = "https://github.com/shotover/docker-compose-runner"
 license = "Apache-2.0"
+description = "A small helper for running `docker-compose.yaml` files"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
