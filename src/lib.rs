@@ -37,6 +37,7 @@ pub(crate) fn run_command(command: &str, args: &[&str]) -> Result<String> {
     }
 }
 
+/// Launch and manage a docker-compose instance
 #[must_use]
 pub struct DockerCompose {
     file_path: String,
