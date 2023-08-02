@@ -120,6 +120,7 @@ impl DockerCompose {
         DockerCompose::wait_for_logs(&self.file_path, &mut [service]);
     }
 
+    /// constructs one service per service_to_image, the waiting regex is taken from the corresponding image entry in image_waiters.
     fn get_services(
         image_waiters: &[Image],
         service_to_image: HashMap<String, String>,
@@ -128,11 +129,7 @@ impl DockerCompose {
             .into_iter()
             .map(
                 |(service_name, image_name)| match image_waiters.iter().find(|image| image.name == image_name) {
-                    Some(image) => Service {
-                        name: service_name,
-                        log_to_wait_for: Regex::new(image.log_regex_to_wait_for).unwrap(),
-                        logs_seen: 0,
-                    },
+                    Some(image) => Service::new(service_name, image),
                     None => panic!("The image_waiters list given to DockerCompose::new does not include the image {image_name}, please add it to the list."),
                 },
             )
@@ -269,10 +266,21 @@ pub struct Image {
     pub log_regex_to_wait_for: &'static str,
 }
 
+/// Holds the state for a running service
 struct Service {
     name: String,
     log_to_wait_for: Regex,
     logs_seen: usize,
+}
+
+impl Service {
+    fn new(service_name: String, image: &Image) -> Service {
+        Service {
+            name: service_name,
+            log_to_wait_for: Regex::new(image.log_regex_to_wait_for).unwrap(),
+            logs_seen: 0,
+        }
+    }
 }
 
 impl Drop for DockerCompose {
