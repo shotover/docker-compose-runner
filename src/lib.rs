@@ -130,11 +130,7 @@ impl DockerCompose {
             .into_iter()
             .map(
                 |(service_name, image_name)| match image_waiters.iter().find(|image| image.name == image_name) {
-                    Some(image) => Service {
-                        name: service_name,
-                        log_to_wait_for: Regex::new(image.log_regex_to_wait_for).unwrap(),
-                        timeout: image.timeout,
-                    },
+                    Some(image) => Service::new(service_name, image),
                     None => panic!("The image_waiters list given to DockerCompose::new does not include the image {image_name}, please add it to the list."),
                 },
             )
@@ -201,7 +197,7 @@ impl DockerCompose {
                     service.logs_seen += 1;
                 }
                 let time_to_complete = instant.elapsed();
-                println!("All services ready in {}", time_to_complete.as_secs());
+                trace!("All services ready in {}", time_to_complete.as_secs());
                 return;
             }
 
@@ -290,11 +286,12 @@ struct Service {
 }
 
 impl Service {
-    fn new(service_name: String, image: &Image) -> Service {
+    fn new(name: String, image: &Image) -> Service {
         Service {
-            name: service_name,
+            name,
             log_to_wait_for: Regex::new(image.log_regex_to_wait_for).unwrap(),
             logs_seen: 0,
+            timeout: image.timeout,
         }
     }
 }
