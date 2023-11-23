@@ -1,0 +1,8 @@
+version: "3.3"
+services:
+  redis-one:
+    image: bitnami/redis:6.2.13-debian-11-r73
+    ports:
+      - "6379:6379"
+    environment:
+      ALLOW_EMPTY_PASSWORD: "yes"
