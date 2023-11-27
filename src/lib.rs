@@ -179,13 +179,11 @@ impl DockerCompose {
     /// Will panic if a timeout occurs.
     fn wait_for_logs(file_path: &str, services: &mut [&mut Service]) {
         // Find the service with the maximum timeout and use that
-        let timeout = Duration::from_secs(
-            services
-                .iter()
-                .map(|service| service.timeout)
-                .max()
-                .unwrap(),
-        );
+        let timeout = services
+            .iter()
+            .map(|service| service.timeout)
+            .max_by_key(|x| x.as_nanos())
+            .unwrap();
 
         // TODO: remove this check once CI docker compose is updated (probably ubuntu 22.04)
         let can_use_status_flag =
@@ -287,7 +285,7 @@ impl DockerCompose {
 pub struct Image {
     pub name: &'static str,
     pub log_regex_to_wait_for: &'static str,
-    pub timeout: u64,
+    pub timeout: Duration,
 }
 
 /// Holds the state for a running service
@@ -295,7 +293,7 @@ struct Service {
     name: String,
     log_to_wait_for: Regex,
     logs_seen: usize,
-    timeout: u64,
+    timeout: Duration,
 }
 
 impl Service {
