@@ -37,7 +37,7 @@ pub(crate) fn run_command(command: &str, args: &[&str]) -> Result<String> {
     }
 }
 
-/// Launch and manage a docker-compose instance
+/// Launch and manage a docker compose instance
 #[must_use]
 pub struct DockerCompose {
     file_path: String,
@@ -45,27 +45,34 @@ pub struct DockerCompose {
 }
 
 impl DockerCompose {
-    /// Runs docker-compose on the provided docker-compose.yaml file.
-    /// Dropping the returned object will stop and destroy the launched docker-compose services.
+    /// Runs docker compose on the provided docker-compose.yaml file.
+    /// Dropping the returned object will stop and destroy the launched docker compose services.
     ///
     /// image_waiters gives DockerCompose a way to know when a container has finished starting up.
     /// Each entry defines an image name and a regex such that if the regex matches on a log line output by a container running that image the container is considered started up.
     ///
     /// image_builder is a callback allowing the user to build a docker image if the docker-compose.yaml depends on it.
-    /// The argument is an iterator over all the image names docker-compose is going to use.
+    /// The argument is an iterator over all the image names docker compose is going to use.
     pub fn new(
         image_waiters: &'static [Image],
         image_builder: impl FnOnce(&[&str]),
         yaml_path: &str,
     ) -> Self {
-        if let Err(ErrorKind::NotFound) = Command::new("docker-compose")
+        match Command::new("docker")
+            .arg("compose")
             .output()
             .map_err(|e| e.kind())
         {
-            panic!("Could not find docker-compose. Have you installed it?");
+            Err(ErrorKind::NotFound) => panic!("Could not find docker. Have you installed docker?"),
+            Err(err) => panic!("error running docker {:?}", err),
+            Ok(output) => {
+                if !output.status.success() {
+                    panic!("Could not find docker compose. Have you installed docker compose?");
+                }
+            }
         }
 
-        // It is critical that clean_up is run before everything else as the internal `docker-compose` commands act as validation
+        // It is critical that clean_up is run before everything else as the internal `docker compose` commands act as validation
         // for the docker-compose.yaml file that we later manually parse with poor error handling
         DockerCompose::clean_up(yaml_path).unwrap();
 
@@ -74,7 +81,7 @@ impl DockerCompose {
         let images: Vec<&str> = service_to_image.values().map(|x| x.as_ref()).collect();
         image_builder(&images);
 
-        run_command("docker-compose", &["-f", yaml_path, "up", "-d"]).unwrap();
+        run_command("docker", &["compose", "-f", yaml_path, "up", "-d"]).unwrap();
 
         let mut services = DockerCompose::get_services(image_waiters, service_to_image);
         let mut services_arg: Vec<&mut Service> = services.iter_mut().collect();
@@ -89,8 +96,8 @@ impl DockerCompose {
     /// Stops the container with the provided service name
     pub fn stop_service(&self, service_name: &str) {
         run_command(
-            "docker-compose",
-            &["-f", &self.file_path, "stop", service_name],
+            "docker",
+            &["compose", "-f", &self.file_path, "stop", service_name],
         )
         .unwrap();
     }
@@ -98,8 +105,8 @@ impl DockerCompose {
     /// Kills the container with the provided service name
     pub fn kill_service(&self, service_name: &str) {
         run_command(
-            "docker-compose",
-            &["-f", &self.file_path, "kill", service_name],
+            "docker",
+            &["compose", "-f", &self.file_path, "kill", service_name],
         )
         .unwrap();
     }
@@ -107,8 +114,8 @@ impl DockerCompose {
     /// Restarts the container with the provided service name
     pub fn start_service(&mut self, service_name: &str) {
         run_command(
-            "docker-compose",
-            &["-f", &self.file_path, "start", service_name],
+            "docker",
+            &["compose", "-f", &self.file_path, "start", service_name],
         )
         .unwrap();
 
@@ -180,17 +187,21 @@ impl DockerCompose {
                 .unwrap(),
         );
 
-        // TODO: remove this check once CI docker-compose is updated (probably ubuntu 22.04)
-        let can_use_status_flag = run_command("docker-compose", &["-f", file_path, "ps", "--help"])
-            .unwrap()
-            .contains("--status");
+        // TODO: remove this check once CI docker compose is updated (probably ubuntu 22.04)
+        let can_use_status_flag =
+            run_command("docker", &["compose", "-f", file_path, "ps", "--help"])
+                .unwrap()
+                .contains("--status");
 
         let instant = time::Instant::now();
         loop {
             // check if every service is completely ready
             if services.iter().all(|service| {
-                let log = run_command("docker-compose", &["-f", file_path, "logs", &service.name])
-                    .unwrap();
+                let log = run_command(
+                    "docker",
+                    &["compose", "-f", file_path, "logs", &service.name],
+                )
+                .unwrap();
                 service.log_to_wait_for.find_iter(&log).count() > service.logs_seen
             }) {
                 for service in services.iter_mut() {
@@ -201,7 +212,7 @@ impl DockerCompose {
                 return;
             }
 
-            let all_logs = run_command("docker-compose", &["-f", file_path, "logs"]).unwrap();
+            let all_logs = run_command("docker", &["compose", "-f", file_path, "logs"]).unwrap();
 
             // check if the service has failed in some way
             // this allows us to report the failure to the developer a lot sooner than just relying on the timeout
@@ -221,9 +232,11 @@ impl DockerCompose {
             if instant.elapsed() > timeout {
                 let mut results = "".to_owned();
                 for service in services {
-                    let log =
-                        run_command("docker-compose", &["-f", file_path, "logs", &service.name])
-                            .unwrap();
+                    let log = run_command(
+                        "docker",
+                        &["compose", "-f", file_path, "logs", &service.name],
+                    )
+                    .unwrap();
                     let found = if service.log_to_wait_for.is_match(&log) {
                         "Found"
                     } else {
@@ -245,8 +258,8 @@ impl DockerCompose {
 
     fn assert_no_containers_in_service_with_status(file_path: &str, status: &str, full_log: &str) {
         let containers = run_command(
-            "docker-compose",
-            &["-f", file_path, "ps", "--status", status],
+            "docker",
+            &["compose", "-f", file_path, "ps", "--status", status],
         )
         .unwrap();
         // One line for the table heading. If there are more lines then there is some data indicating that containers exist with this status
@@ -257,15 +270,15 @@ impl DockerCompose {
         }
     }
 
-    /// Cleans up the docker-compose by shutting down the running system and removing the images.
+    /// Cleans up docker compose by shutting down the running system and removing the images.
     ///
     /// # Arguments
     /// * `file_path` - The path to the docker-compose yaml file that was used to start docker.
     fn clean_up(file_path: &str) -> Result<()> {
         trace!("bringing down docker compose {}", file_path);
 
-        run_command("docker-compose", &["-f", file_path, "kill"])?;
-        run_command("docker-compose", &["-f", file_path, "down", "-v"])?;
+        run_command("docker", &["compose", "-f", file_path, "kill"])?;
+        run_command("docker", &["compose", "-f", file_path, "down", "-v"])?;
 
         Ok(())
     }
