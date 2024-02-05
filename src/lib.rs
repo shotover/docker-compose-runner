@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use regex::Regex;
+use regex_lite::Regex;
 use serde_yaml::Value;
 use std::collections::HashMap;
 use std::fmt::Write;
