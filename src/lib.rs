@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use regex::Regex;
 use serde_yaml::Value;
 use std::collections::HashMap;
@@ -249,7 +249,9 @@ impl DockerCompose {
                     .unwrap();
                 }
 
-                panic!("wait_for_log {timeout:?} timer expired. Results:\n{results}\nLogs:\n{all_logs}");
+                panic!(
+                    "wait_for_log {timeout:?} timer expired. Results:\n{results}\nLogs:\n{all_logs}"
+                );
             }
         }
     }

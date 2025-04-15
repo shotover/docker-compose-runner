@@ -1,8 +1,7 @@
 [package]
 name = "docker-compose-runner"
 version = "0.3.1"
-edition = "2021"
-rust-version = "1.56"
+edition = "2024"
 repository = "https://github.com/shotover/docker-compose-runner"
 license = "Apache-2.0"
 description = "A small helper for running `docker-compose.yaml` files"
