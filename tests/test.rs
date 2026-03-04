@@ -16,7 +16,7 @@ fn test() {
 }
 
 pub const IMAGE_WAITERS: [Image; 1] = [Image {
-    name: "bitnami/redis:6.2.13-debian-11-r73",
+    name: "bitnamilegacy/redis:6.2.13-debian-11-r73",
     log_regex_to_wait_for: r"Ready to accept connections",
     timeout: Duration::from_secs(120),
 }];
