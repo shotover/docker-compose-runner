@@ -1,6 +1,6 @@
 [package]
 name = "docker-compose-runner"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2024"
 repository = "https://github.com/shotover/docker-compose-runner"
 license = "Apache-2.0"
