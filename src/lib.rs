@@ -185,12 +185,6 @@ impl DockerCompose {
             .max_by_key(|x| x.as_nanos())
             .unwrap();
 
-        // TODO: remove this check once CI docker compose is updated (probably ubuntu 22.04)
-        let can_use_status_flag =
-            run_command("docker", &["compose", "-f", file_path, "ps", "--help"])
-                .unwrap()
-                .contains("--status");
-
         let instant = time::Instant::now();
         loop {
             // check if every service is completely ready
@@ -212,19 +206,15 @@ impl DockerCompose {
 
             let all_logs = run_command("docker", &["compose", "-f", file_path, "logs"]).unwrap();
 
-            // check if the service has failed in some way
-            // this allows us to report the failure to the developer a lot sooner than just relying on the timeout
-            if can_use_status_flag {
-                DockerCompose::assert_no_containers_in_service_with_status(
-                    file_path, "exited", &all_logs,
-                );
-                DockerCompose::assert_no_containers_in_service_with_status(
-                    file_path, "dead", &all_logs,
-                );
-                DockerCompose::assert_no_containers_in_service_with_status(
-                    file_path, "removing", &all_logs,
-                );
-            }
+            DockerCompose::assert_no_containers_in_service_with_status(
+                file_path, "exited", &all_logs,
+            );
+            DockerCompose::assert_no_containers_in_service_with_status(
+                file_path, "dead", &all_logs,
+            );
+            DockerCompose::assert_no_containers_in_service_with_status(
+                file_path, "removing", &all_logs,
+            );
 
             // if all else fails timeout the wait
             if instant.elapsed() > timeout {
@@ -259,7 +249,15 @@ impl DockerCompose {
     fn assert_no_containers_in_service_with_status(file_path: &str, status: &str, full_log: &str) {
         let containers = run_command(
             "docker",
-            &["compose", "-f", file_path, "ps", "--status", status],
+            &[
+                "compose",
+                "-f",
+                file_path,
+                "ps",
+                "--status",
+                status,
+                "--orphans=false",
+            ],
         )
         .unwrap();
         // One line for the table heading. If there are more lines then there is some data indicating that containers exist with this status
