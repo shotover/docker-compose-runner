@@ -249,7 +249,15 @@ impl DockerCompose {
     fn assert_no_containers_in_service_with_status(file_path: &str, status: &str, full_log: &str) {
         let containers = run_command(
             "docker",
-            &["compose", "-f", file_path, "ps", "--status", status],
+            &[
+                "compose",
+                "-f",
+                file_path,
+                "ps",
+                "--status",
+                status,
+                "--orphans=false",
+            ],
         )
         .unwrap();
         // One line for the table heading. If there are more lines then there is some data indicating that containers exist with this status
