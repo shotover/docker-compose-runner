@@ -12,8 +12,8 @@ description = "A small helper for running `docker-compose.yaml` files"
 anyhow = "1.0.70"
 regex = "1.7.0"
 serde_yaml = "0.9.21"
-subprocess = "0.2.9"
+subprocess = "1.0.0"
 tracing = "0.1.37"
 
 [dev-dependencies]
-redis = "0.24.0"
+redis = "1.0.0"
